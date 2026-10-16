@@ -1,1 +1,46 @@
+name: Build Wenxi Windows EXE
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch: # 支持手动点击触发编译
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      # 安装前端依赖（如果项目包含vue/web前端资源）
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Build web frontend
+        run: |
+          cd web
+          npm install
+          npm run build
+        continue-on-error: true
+
+      # 交叉编译Windows exe
+      - name: Build windows exe
+        env:
+          CGO_ENABLED: 0
+          GOOS: windows
+          GOARCH: amd64
+        run: |
+          go build -ldflags "-s -w" -o wenxi.exe .
+
+      # 上传编译产物，编译完成后可以下载
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: wenxi-windows-exe
+          path: wenxi.exe
 
